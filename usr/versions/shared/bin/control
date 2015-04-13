@@ -21,7 +21,7 @@ done
 export APPDIR=$OPENSHIFT_PYTHON_DIR
 
 function start_app() {
-    echo "Starting Python ${OPENSHIFT_PYTHON_VERSION} cartridge (app.py server)"
+    echo "Starting Python ${OPENSHIFT_PYTHON_VERSION} cartridge (celery worker)"
 
     if appserver_pidfile_exists; then
       echo "Application is already running"
@@ -33,58 +33,30 @@ function start_app() {
     LOGPIPE=${OPENSHIFT_HOMEDIR}/app-root/runtime/logshifter-python
     rm -f $LOGPIPE && mkfifo $LOGPIPE
 
-    /usr/bin/logshifter -tag python < $LOGPIPE &
-    nohup python -u app.py &> $LOGPIPE &
+	/usr/bin/logshifter -tag python < $LOGPIPE &
+	echo "setting PYTHONPATH"
+	PYTHONPATH=$OPENSHIFT_DATA_DIR:$OPENSHIFT_DATA_DIR/config/:$OPENSHIFT_REPO_DIR/.openshift:$OPENSHIFT_REPO_DIR/wsgi:$OPENSHIFT_REPO_DIR:$PYTHONPATH
+	
+	echo "Starting celery worker"
+	CELERY_RUNNING=$(ps -ef | grep "celery worker" | grep -v "grep" | wc -l)
+	echo "Celery already running?" $CELERY_RUNNING
 
-    retries=3
-    while [ $retries -gt 0 ]; do
-      app_pid=$(appserver_pid)
-      [ -n "${app_pid}" ] && break
-      sleep 1
-      let retries=${retries}-1
-    done
+	if [ $CELERY_RUNNING -eq 0 ]
+	then
+		rm ${OPENSHIFT_TMP_DIR}celery-worker.pid 
+		nice -n 10 celery multi start worker --config=${OPENSHIFT_CELERY_CONFIG=celeryconfig} --concurrency=1  --autoscale=6,1 --loglevel=DEBUG --hostname=$OPENSHIFT_APP_DNS --pidfile=${OPENSHIFT_TMP_DIR}celery-worker.pid --logfile=${OPENSHIFT_LOG_DIR}celery.log >> ${OPENSHIFT_LOG_DIR}/celery.log 2>&1 &
+	fi
 
-    sleep 2
-
-    if [ -n "${app_pid}" ]; then
-      echo "$app_pid" > $OPENSHIFT_PYTHON_DIR/run/appserver.pid
-    else
-      echo "ERROR: Application failed to start, use 'rhc tail' for more informations."
-    fi
 }
 
-function pre_start_apache_config {
-    write_server_status ${HTTPD_CFG_DIR}/server-status.conf
-    write_httpd_passenv $HTTPD_PASSENV_FILE
-    select_python_document_root ${OPENSHIFT_REPO_DIR}
-    select_python_wsgi_application ${OPENSHIFT_REPO_DIR}
-    oo-erb ${ERB_HTTPD_CFG_DIR}openshift.conf.erb > ${HTTPD_CFG_DIR}openshift.conf
-    oo-erb ${OPENSHIFT_PYTHON_DIR}conf/performance.conf.erb.hidden > ${HTTPD_CFG_DIR}performance.conf
-}
-
-function start_apache() {
-    echo "Starting Python ${OPENSHIFT_PYTHON_VERSION} cartridge (Apache+mod_wsgi)"
-    pre_start_apache_config
-    ensure_valid_httpd_process "$HTTPD_PID_FILE" "$HTTPD_CFG_FILE"
-    # Force httpd into its own pgroup, as httpd is hard-coded to TERM everything in
-    # its pgroup during shutdown (even while foregrounded)
-    set -m
-    eval "nohup /usr/sbin/httpd $HTTPD_CMD_CONF -DFOREGROUND |& /usr/bin/logshifter -tag python &"
-    set +m
-    [ "$?" == "0" ] && wait_for_pid_file $HTTPD_PID_FILE
-}
 
 function start() {
-    if [ -f "${OPENSHIFT_REPO_DIR}app.py" ]; then
-        start_app
-    else
-        start_apache
-    fi
+    start_app
 }
 
 function stop_app() {
     if [ -s ${OPENSHIFT_PYTHON_DIR}run/appserver.pid ]; then
-        kpid=$(cat ${OPENSHIFT_PYTHON_DIR}run/appserver.pid)
+        kpid=$(cat ${OPENSHIFT_TMP_DIR}celery-worker.pid)
         iters=0
         while kill $kpid >/dev/null 2>&1; do
             iters=$(($iters + 1))
@@ -92,14 +64,7 @@ function stop_app() {
             sleep 1
         done
         kill -KILL $kpid >/dev/null 2>&1 || :
-        rm -f ${OPENSHIFT_PYTHON_DIR}run/appserver.pid
-    fi
-}
-
-function stop_apache() {
-    ensure_valid_httpd_pid_file "$HTTPD_PID_FILE" "$HTTPD_CFG_FILE"
-    if [ -f "$HTTPD_PID_FILE" ]; then
-        shutdown_httpd_graceful $HTTPD_PID_FILE
+        rm -f ${OPENSHIFT_TMP_DIR}celery-worker.pid
     fi
 }
 
@@ -108,41 +73,26 @@ function stop() {
 
     # Do both in case the last commit transitioned from one to the
     # other or there was a problem.
-    stop_apache
     stop_app
 }
 
 
 function restart() {
     echo "Restarting Python ${OPENSHIFT_PYTHON_VERSION} cartridge"
-    if [ -f "${OPENSHIFT_REPO_DIR}app.py" ]; then
-        stop_apache
-        stop_app
-        start_app
-    else
-        stop_app
-        pre_start_apache_config
-        ensure_httpd_restart_succeed "$HTTPD_PID_FILE" "$HTTPD_CFG_FILE"
-        if [ -f "$HTTPD_PID_FILE" ]; then
-          httpd_pid=`cat "$HTTPD_PID_FILE" 2> /dev/null`
-          kill -HUP $httpd_pid
-        else
-          start
-        fi
-    fi
+    stop_app
+    start_app
+
 }
 
 function status() {
-    res=0
-    if [ -f "${OPENSHIFT_REPO_DIR}app.py" ]; then
-        output=$(curl -s -m 30 http://$OPENSHIFT_PYTHON_IP:$OPENSHIFT_PYTHON_PORT/ &> /dev/null) || res=1
+
+    pid=`cat ${OPENSHIFT_TMP_DIR}celery-worker.pid`
+    info=`celery multi show worker`
+    client_result $pwd
+    if [ -f $pid ] && ( kill -0 $(cat $pid) ); then
+        client_result "Celery is running ${info} at pid:${pid}"
     else
-        output=$(curl -s -m 30 http://$OPENSHIFT_PYTHON_IP:$OPENSHIFT_PYTHON_PORT/server-status?auto 2>&1 ) || res=1
-    fi
-    if [ $res -eq 0 ]; then
-        client_result "Application is running"
-    else
-        client_result "Application is either stopped or inaccessible"
+        client_result "Celery is not running"
     fi
 }
 
@@ -150,7 +100,7 @@ function status() {
 function tidy() {
     client_message "Emptying python logs in dir: $OPENSHIFT_LOG_DIR"
     shopt -s dotglob
-    rm -rf $OPENSHIFT_LOG_DIR/python.log*
+    rm -rf $OPENSHIFT_LOG_DIR/celery.log*
 }
 
 function build() {
@@ -185,6 +135,14 @@ function build() {
         echo "Running setup.py script.."
         ( cd $OPENSHIFT_REPO_DIR; python ${OPENSHIFT_REPO_DIR}/setup.py develop $OPENSHIFT_PYTHON_MIRROR )
     fi
+    
+    if [ -f ${OPENSHIFT_REPO_DIR}/setup.py ]; then
+        echo "Running setup.py script.."
+        ( cd $OPENSHIFT_REPO_DIR; python ${OPENSHIFT_REPO_DIR}/setup.py develop $OPENSHIFT_PYTHON_MIRROR )
+    fi
+    
+    echo "Running installing celery.."
+    ( cd $OPENSHIFT_REPO_DIR; pip install celery )
 
     relative-virtenv
 }
