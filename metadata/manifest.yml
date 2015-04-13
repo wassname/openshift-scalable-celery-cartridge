@@ -25,6 +25,10 @@ Source-Url: https://github.com/wassname/openshift-scalable-celery-cartridge.git
 Provides:
 - celery
 Publishes: 
+Group-Overrides:
+  - components:
+    - celery
+    - python
 Subscribes:
   set-env:
     Type: ENV:*
