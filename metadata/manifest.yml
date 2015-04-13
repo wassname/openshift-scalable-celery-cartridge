@@ -56,12 +56,3 @@ Endpoints:
     Backend: ''
     Options:
       health: true
-Version-Overrides:
-  '2.7':
-    Display-Name: Celery Scalable 
-    Provides:
-    - Celery Scalable 
-  '3.3':
-    Display-Name: Celery Scalable 
-    Provides:
-    - Celery Scalable 
