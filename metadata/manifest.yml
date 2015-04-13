@@ -19,8 +19,6 @@ Compatible-Versions:
 Cartridge-Vendor: wassname
 Categories:
 - service
-- python
-- web_framework
 Requires: celery
 Website: https://github.com/wassname/openshift-scalable-celery-cartridge
 Source-Url: https://github.com/wassname/openshift-scalable-celery-cartridge.git
@@ -42,17 +40,3 @@ Endpoints:
   Private-Port-Name: PORT
   Private-Port: 16388
   Public-Port-Name: PROXY_PORT
-  Protocols:
-  - http
-  - ws
-  Options:
-    primary: true
-  Mappings:
-  - Frontend: ''
-    Backend: ''
-    Options:
-      websocket: true
-  - Frontend: /health
-    Backend: ''
-    Options:
-      health: true
