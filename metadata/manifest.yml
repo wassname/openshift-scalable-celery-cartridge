@@ -19,16 +19,12 @@ Compatible-Versions:
 Cartridge-Vendor: wassname
 Categories:
 - service
-Requires: python
+Requires: celery
 Website: https://github.com/wassname/openshift-scalable-celery-cartridge
 Source-Url: https://github.com/wassname/openshift-scalable-celery-cartridge.git
 Provides:
 - celery
 Publishes: 
-Group-Overrides:
-  - components:
-    - celery
-    - python
 Subscribes:
   set-env:
     Type: ENV:*
