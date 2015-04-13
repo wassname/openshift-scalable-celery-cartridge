@@ -141,6 +141,11 @@ function build() {
         ( cd $OPENSHIFT_REPO_DIR; python ${OPENSHIFT_REPO_DIR}/setup.py develop $OPENSHIFT_PYTHON_MIRROR )
     fi
     
+    if [ ! -f ${OPENSHIFT_DATA_DIR}/celeryconfig.py ]; then
+        echo "Copying basic celeryconfig.py to $OPENSHIFT_DATA_DIR..."
+        ( cp ${OPENSHIFT_PYTHON_DIR}usr/config/celeryconfig.py $OPENSHIFT_DATA_DIR)
+    fi
+    
     echo "Running installing celery.."
     ( cd $OPENSHIFT_REPO_DIR; pip install celery )
 

@@ -1,3 +1,10 @@
 # OpenShift Python Cartridge
-This cartridge is documented in the [Cartridge Guide](http://openshift.github.io/documentation/oo_cartridge_guide.html#python
-).
+This cartridge is forked from the openshift python cartridge with celery added.
+
+# Install
+
+rhc cartridge-add https://raw.github.com/wassname/openshift-scalable-celery-cartridge/master/metadata/manifest.yml -a "appname"
+
+# Config
+
+To configure make a celeryconfig.py file and put it in you $OPENSHIFT_DATA_DIR. Or use another name and set ${OPENSHIFT_CELERY_CONFIG}=othername.py.
