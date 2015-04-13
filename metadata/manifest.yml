@@ -22,6 +22,7 @@ Categories:
 - python
 - web_framework
 Website: https://github.com/wassname/openshift-scalable-celery-cartridge
+Source-Url: https://github.com/wassname/openshift-scalable-celery-cartridge.git
 Provides:
 - celery
 Publishes: 
