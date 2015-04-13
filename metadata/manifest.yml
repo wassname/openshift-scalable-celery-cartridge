@@ -2,7 +2,7 @@
 Name: celery
 Cartridge-Short-Name: celery
 Display-Name: Celery Scalable 
-Description: ! 'This cartridge is forked from the openshift python cartridge with celery added.'
+Description: This cartridge is forked from the openshift python cartridge with celery added.
 Version: '2.7'
 Versions:
 - '2.6'
@@ -21,6 +21,7 @@ Categories:
 - service
 - python
 - web_framework
+Requires: celery
 Website: https://github.com/wassname/openshift-scalable-celery-cartridge
 Source-Url: https://github.com/wassname/openshift-scalable-celery-cartridge.git
 Provides:
