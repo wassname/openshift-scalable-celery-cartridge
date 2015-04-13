@@ -23,8 +23,7 @@ Categories:
 - web_framework
 Website: https://github.com/wassname/openshift-scalable-celery-cartridge
 Provides:
-- python-2.7
-- python
+- celery
 Publishes: 
 Subscribes:
   set-env:
