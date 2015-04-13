@@ -61,9 +61,7 @@ Version-Overrides:
     Display-Name: Celery Scalable 
     Provides:
     - Celery Scalable 
-    https://github.com/wassname/openshift-scalable-celery-cartridge.git
   '3.3':
     Display-Name: Celery Scalable 
     Provides:
     - Celery Scalable 
-    https://github.com/wassname/openshift-scalable-celery-cartridge.git
