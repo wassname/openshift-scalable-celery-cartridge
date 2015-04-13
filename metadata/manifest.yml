@@ -40,7 +40,7 @@ Scaling:
 Endpoints:
 - Private-IP-Name: IP
   Private-Port-Name: PORT
-  Private-Port: 8080
+  Private-Port: 16388
   Public-Port-Name: PROXY_PORT
   Protocols:
   - http
@@ -61,7 +61,9 @@ Version-Overrides:
     Display-Name: Celery Scalable 
     Provides:
     - Celery Scalable 
+    https://github.com/wassname/openshift-scalable-celery-cartridge.git
   '3.3':
     Display-Name: Celery Scalable 
     Provides:
     - Celery Scalable 
+    https://github.com/wassname/openshift-scalable-celery-cartridge.git
