@@ -56,16 +56,10 @@ Endpoints:
       health: true
 Version-Overrides:
   '2.7':
-    Display-Name: Python 2.7
-    License: The Python License, version 2.7.3
+    Display-Name: Celery Scalable 
     Provides:
-    - python-2.7
-    - python
-    - python(version) = 2.7
+    - Celery Scalable 
   '3.3':
-    Display-Name: Python 3.3
-    License: The Python License, version 3.3
+    Display-Name: Celery Scalable 
     Provides:
-    - python-3.3
-    - python
-    - python(version) = 3.3
+    - Celery Scalable 
